@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.26.0/cytoscape.min.js"></script>
+    <script src="https://unpkg.com/layout-base/layout-base.js"></script>
+    <script src="https://unpkg.com/cose-base/cose-base.js"></script>
+    <script src="https://unpkg.com/cytoscape-cose-bilkent/cytoscape-cose-bilkent.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #1a1a1a;
+            color: #ffffff;
+        }
+
+        #header {
+            background: #2c2c2c;
+            padding: 20px;
+            border-bottom: 2px solid #3a3a3a;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+            color: #999;
+        }
+
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        #controls {
+            background: #2c2c2c;
+            padding: 15px 20px;
+            border-bottom: 1px solid #3a3a3a;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 14px;
+            color: #ccc;
+        }
+
+        select, input {
+            background: #3a3a3a;
+            color: #fff;
+            border: 1px solid #4a4a4a;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        select:hover, input:hover {
+            border-color: #5a5a5a;
+        }
+
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #2980b9;
+        }
+
+        #cy {
+            width: 100%;
+            height: calc(100vh - 180px);
+            background: #1a1a1a;
+        }
+
+        #legend {
+            position: absolute;
+            top: 200px;
+            right: 20px;
+            background: rgba(44, 44, 44, 0.95);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #3a3a3a;
+            font-size: 13px;
+            min-width: 200px;
+        }
+
+        .legend-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 8px 0;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            border: 1px solid #555;
+        }
+
+        #info-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(44, 44, 44, 0.95);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #3a3a3a;
+            max-width: 400px;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        #info-panel.active {
+            display: block;
+        }
+
+        .info-title {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: #3498db;
+        }
+
+        .info-section {
+            margin: 10px 0;
+        }
+
+        .info-label {
+            color: #999;
+            font-size: 12px;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 14px;
+        }
+
+        .issue-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin: 3px;
+        }
+
+        .issue-error {
+            background: #e74c3c;
+        }
+
+        .issue-warning {
+            background: #f39c12;
+        }
+
+        .issue-info {
+            background: #3498db;
+        }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <h1>{{ title }}</h1>
+        <div class="stats">
+            <div class="stat">
+                <span>Nodes:</span>
+                <strong>{{ node_count }}</strong>
+            </div>
+            <div class="stat">
+                <span>Edges:</span>
+                <strong>{{ edge_count }}</strong>
+            </div>
+        </div>
+    </div>
+
+    <div id="controls">
+        <div class="control-group">
+            <label for="layout-select">Layout:</label>
+            <select id="layout-select">
+                <option value="cose-bilkent">Force Directed (COSE)</option>
+                <option value="breadthfirst">Breadth First</option>
+                <option value="circle">Circle</option>
+                <option value="grid">Grid</option>
+                <option value="concentric">Concentric</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <label for="search">Search:</label>
+            <input type="text" id="search" placeholder="Search nodes...">
+        </div>
+        
+        <button id="fit-btn">Fit to Screen</button>
+        <button id="reset-btn">Reset View</button>
+    </div>
+
+    <div id="cy"></div>
+
+    <div id="legend">
+        <div class="legend-title">Legend</div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #2ecc71;"></div>
+            <span>Clean Code</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #f1c40f;"></div>
+            <span>Has Info Issues</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #f39c12;"></div>
+            <span>Has Warnings</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #e74c3c;"></div>
+            <span>Has Errors</span>
+        </div>
+        <div class="legend-item" style="margin-top: 10px;">
+            <div style="width: 30px; height: 3px; background: #3498db;"></div>
+            <span>Normal Import</span>
+        </div>
+        <div class="legend-item">
+            <div style="width: 30px; height: 3px; background: #e74c3c;"></div>
+            <span>Circular Dependency</span>
+        </div>
+    </div>
+
+    <div id="info-panel"></div>
+
+    <script>
+        const graphData = {{ graph_data|safe }};
+
+        // Initialize Cytoscape
+        const cy = cytoscape({
+            container: document.getElementById('cy'),
+            elements: graphData.elements,
+            style: [
+                {
+                    selector: 'node',
+                    style: {
+                        'label': 'data(label)',
+                        'text-valign': 'center',
+                        'text-halign': 'center',
+                        'font-size': '12px',
+                        'color': '#ffffff',
+                        'text-outline-width': 2,
+                        'text-outline-color': '#1a1a1a',
+                        'border-width': 2,
+                        'border-color': '#555',
+                    }
+                },
+                {
+                    selector: 'node.cycle',
+                    style: {
+                        'border-width': 3,
+                        'border-color': '#e74c3c',
+                        'border-style': 'dashed',
+                    }
+                },
+                {
+                    selector: 'edge',
+                    style: {
+                        'width': 2,
+                        'curve-style': 'bezier',
+                        'target-arrow-shape': 'triangle',
+                        'arrow-scale': 1.5,
+                    }
+                },
+                {
+                    selector: 'edge.cycle',
+                    style: {
+                        'width': 3,
+                        'line-style': 'dashed',
+                    }
+                },
+                {
+                    selector: ':selected',
+                    style: {
+                        'border-width': 4,
+                        'border-color': '#3498db',
+                    }
+                }
+            ],
+            layout: {
+                name: 'cose-bilkent',
+                animate: false,
+                nodeDimensionsIncludeLabels: true,
+                idealEdgeLength: 100,
+                nodeRepulsion: 8000,
+                gravity: 0.25,
+            },
+            wheelSensitivity: 0.2,
+        });
+
+        // Layout selector
+        document.getElementById('layout-select').addEventListener('change', (e) => {
+            const layoutName = e.target.value;
+            cy.layout({ name: layoutName, animate: true }).run();
+        });
+
+        // Search functionality
+        document.getElementById('search').addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            
+            if (searchTerm) {
+                cy.nodes().forEach(node => {
+                    const label = node.data('label').toLowerCase();
+                    const filePath = node.data('file_path').toLowerCase();
+                    
+                    if (label.includes(searchTerm) || filePath.includes(searchTerm)) {
+                        node.style('opacity', 1);
+                        node.connectedEdges().style('opacity', 1);
+                    } else {
+                        node.style('opacity', 0.2);
+                        node.connectedEdges().style('opacity', 0.2);
+                    }
+                });
+            } else {
+                cy.elements().style('opacity', 1);
+            }
+        });
+
+        // Fit to screen
+        document.getElementById('fit-btn').addEventListener('click', () => {
+            cy.fit(null, 50);
+        });
+
+        // Reset view
+        document.getElementById('reset-btn').addEventListener('click', () => {
+            cy.zoom(1);
+            cy.center();
+            cy.elements().style('opacity', 1);
+            document.getElementById('search').value = '';
+        });
+
+        // Node click handler
+        cy.on('tap', 'node', (event) => {
+            const node = event.target;
+            const data = node.data();
+            
+            const infoPanel = document.getElementById('info-panel');
+            infoPanel.classList.add('active');
+            
+            let issuesHtml = '';
+            if (data.issues && Object.keys(data.issues).length > 0) {
+                issuesHtml = '<div class="info-section"><div class="info-label">Issues</div>';
+                for (const [category, count] of Object.entries(data.issues)) {
+                    let badgeClass = 'issue-info';
+                    if (category.includes('Error') || category.includes('Critical')) {
+                        badgeClass = 'issue-error';
+                    } else if (category.includes('Warning')) {
+                        badgeClass = 'issue-warning';
+                    }
+                    issuesHtml += `<span class="issue-badge ${badgeClass}">${category}: ${count}</span>`;
+                }
+                issuesHtml += '</div>';
+            }
+            
+            infoPanel.innerHTML = `
+                <div class="info-title">${data.label}</div>
+                <div class="info-section">
+                    <div class="info-label">File Path</div>
+                    <div class="info-value">${data.file_path || data.id}</div>
+                </div>
+                ${data.language ? `
+                <div class="info-section">
+                    <div class="info-label">Language</div>
+                    <div class="info-value">${data.language}</div>
+                </div>` : ''}
+                ${data.lines_of_code ? `
+                <div class="info-section">
+                    <div class="info-label">Lines of Code</div>
+                    <div class="info-value">${data.lines_of_code}</div>
+                </div>` : ''}
+                ${data.cluster ? `
+                <div class="info-section">
+                    <div class="info-label">Cluster</div>
+                    <div class="info-value">${data.cluster}</div>
+                </div>` : ''}
+                ${issuesHtml}
+                ${data.in_cycle ? `
+                <div class="info-section">
+                    <div class="info-label" style="color: #e74c3c;">Part of Circular Dependency</div>
+                </div>` : ''}
+            `;
+        });
+
+        // Click outside to close info panel
+        cy.on('tap', (event) => {
+            if (event.target === cy) {
+                document.getElementById('info-panel').classList.remove('active');
+            }
+        });
+
+        // Initial fit
+        cy.fit(null, 50);
+    </script>
+</body>
+</html>
+

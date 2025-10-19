@@ -1,0 +1,29 @@
+{
+  "thresholds": {
+    "max_function_lines": 50,
+    "max_nesting_depth": 4,
+    "min_duplicate_lines": 5,
+    "terminal_output_lines": 100
+  },
+  "ignore_patterns": [
+    "*.test.js",
+    "*_test.py",
+    "test_*.py"
+  ],
+  "detectors": {
+    "comments": true,
+    "unused_code": true,
+    "duplicates": true,
+    "complexity": true,
+    "imports": true
+  },
+  "entry_points": [
+    "main.py",
+    "index.js",
+    "app.py",
+    "server.js",
+    "__init__.py",
+    "cli.py"
+  ]
+}
+
